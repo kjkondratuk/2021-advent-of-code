@@ -11,26 +11,37 @@ import (
 
 var (
 	ErrInvalidPositionString = errors.New("invalid position string")
-	navigator                = NewNavigatorWithPosition(Position{
-		x: 0,
-		y: 0,
-	}, map[string]NavigatorFunc{
-		"up": func(scalar int, p Position) Position {
+	navigator                = NewNavigatorWithPosition(Postion{}, map[string]NavigatorFunc{
+		"up": func(scalar int, p Postion) Postion {
 			p.y -= scalar
 			return p
-		}, "down": func(scalar int, p Position) Position {
+		}, "down": func(scalar int, p Postion) Postion {
 			p.y += scalar
 			return p
-		}, "forward": func(scalar int, p Position) Position {
+		}, "forward": func(scalar int, p Postion) Postion {
 			p.x += scalar
+			return p
+		},
+	})
+	aimNavigator = NewNavigatorWithPosition(Postion{}, map[string]NavigatorFunc{
+		"up": func(scalar int, p Postion) Postion {
+			p.a -= scalar
+			return p
+		}, "down": func(scalar int, p Postion) Postion {
+			p.a += scalar
+			return p
+		}, "forward": func(scalar int, p Postion) Postion {
+			p.x += scalar
+			p.y += p.a * scalar
 			return p
 		},
 	})
 )
 
-type Position struct {
+type Postion struct {
 	x int
 	y int
+	a int
 }
 
 type Instruction struct {
@@ -58,21 +69,21 @@ func InstructionFromString(s string) (Instruction, error) {
 	}
 }
 
-type NavigatorFunc func(int, Position) Position
+type NavigatorFunc func(int, Postion) Postion
 
 type Navigator struct {
-	pos Position
+	pos Postion
 	ops map[string]NavigatorFunc
 }
 
-func NewNavigatorWithPosition(start Position, ops map[string]NavigatorFunc) Navigator {
+func NewNavigatorWithPosition(start Postion, ops map[string]NavigatorFunc) Navigator {
 	return Navigator{
 		pos: start,
 		ops: ops,
 	}
 }
 
-func (n *Navigator) Go(ins Instruction) Position {
+func (n *Navigator) Go(ins Instruction) Postion {
 	//log.Printf("going: %s %d", ins.direction, ins.scalar)
 	n.pos = n.ops[ins.direction](ins.scalar, n.pos)
 	return n.pos
@@ -80,7 +91,8 @@ func (n *Navigator) Go(ins Instruction) Position {
 
 func main() {
 	data := lib.ReadData("inputs/day-2.txt")
-	var pos Position
+	var pos Postion
+	var aimPos Postion
 	for _, dir := range data {
 		i, err := InstructionFromString(dir)
 		if err != nil {
@@ -88,8 +100,10 @@ func main() {
 		}
 
 		pos = navigator.Go(i)
-		//log.Printf("New Position: %+v", pos)
+		aimPos = aimNavigator.Go(i)
+		//log.Printf("New Postion: %+v", pos)
 	}
 
-	log.Printf("Final Location: %+v", pos)
+	log.Printf("Final Navigator Location: %+v", pos)
+	log.Printf("Final Aim Navigator Location: %+v", aimPos)
 }
