@@ -9,16 +9,16 @@ import (
 
 func main() {
 	lines := lib.ReadData("inputs/day-1.txt")
-	var p lib.UInt32Comprehendable = parse(lines)
+	var p lib.IntCollection = parse(lines)
 	log.Printf("Parsed Length: [%d]", len(p))
-	c := p.Comprehend(3, func(set []uint32) []uint32 {
+	c := p.Comprehend(3, func(set []int) []int {
 		//log.Printf("Summarizing: %+v", set)
-		var acc uint32 = 0
+		var acc = 0
 		for i := 0; i < len(set); i++ {
 			acc += set[i]
 		}
 		//log.Printf("Result: %d", acc)
-		return []uint32{acc}
+		return []int{acc}
 	})
 	log.Printf("Comprehension Length: [%d]", len(c))
 	incDepths := determineIncreasingPeriods(c)
@@ -26,33 +26,28 @@ func main() {
 	log.Printf("Entries > previous: %d\n", incDepths)
 }
 
-func parse(lines []string) []uint32 {
-	res := make([]uint32, 0)
+func parse(lines []string) []int {
+	res := make([]int, 0)
 	for _, l := range lines {
-		d, err := strconv.ParseUint(l, 10, 32)
-		depth := uint32(d)
+		d, err := strconv.Atoi(l)
 		if err != nil {
 			log.Fatalf("Could not parse input to uint32: [%s]", l)
 		}
-		res = append(res, depth)
+		res = append(res, d)
 	}
 	return res
 }
 
-func determineIncreasingPeriods(depths []uint32) uint32 {
-	var acc uint32 = 0
-	var prev *uint32
+func determineIncreasingPeriods(depths []int) int {
+	var acc = 0
+	var prev *int
 	for _, d := range depths {
-		//log.Printf("evaluating: [%d]", d)
 		if prev != nil {
 			if d > *prev {
-				//log.Printf("[%d] > [%d]", d, *prev)
 				acc++
-			} /* else {
-				log.Printf("* [%d] <= [%d] *", d, *prev)
-			}*/
+			}
 		} else {
-			var zero uint32 = 0
+			var zero = 0
 			prev = &zero
 			log.Printf("First record...")
 		}

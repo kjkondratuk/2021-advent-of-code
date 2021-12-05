@@ -1,14 +1,14 @@
 package lib
 
-type UInt32Comprehendable []uint32
+type IntCollection []int
 
-func (c UInt32Comprehendable) Comprehend(bufferSize uint32, interpreter func([]uint32) []uint32) []uint32 {
-	uDepth := uint32(len(c))
-	res := make([]uint32, 0)
-	var i uint32
+func (c IntCollection) Comprehend(bufferSize int, interpreter func([]int) []int) []int {
+	uDepth := len(c)
+	res := make([]int, 0)
+	var i int
 	for i = 0; i < uDepth-bufferSize+1; i++ {
-		buffer := make([]uint32, 0)
-		var offset uint32
+		buffer := make([]int, 0)
+		var offset int
 		for offset = 0; offset < bufferSize; offset++ {
 			//log.Printf("comprehension index: %d", i+offset)
 			if i+offset > uDepth-1 {

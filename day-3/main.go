@@ -4,6 +4,7 @@ import (
 	"github.com/kjkondratuk/2021-advent-of-code/lib"
 	"log"
 	"math"
+	"strconv"
 )
 
 // Generate:
@@ -14,28 +15,13 @@ import (
 func main() {
 	data := lib.ReadData("inputs/day-3.txt")
 
-	bufferSize := 0
-	counts := make([]int, 0)
-	for r, reading := range data {
-		buffer := []rune(reading)
-		for i, c := range buffer {
-			if r == 0 {
-				counts = append(counts, 0)
-				bufferSize++
-			}
-
-			switch c {
-			case '1':
-				counts[i]++
-			}
-		}
-	}
+	size, counts := summarizeDataByColumn(data)
 
 	log.Printf("Total records: %d", len(data))
 	log.Printf("Counts: %+v", counts)
 
-	gamma := make([]int, bufferSize)
-	epsilon := make([]int, bufferSize)
+	gamma := make([]int, size)
+	epsilon := make([]int, size)
 	for i, n := range counts {
 		threshold := len(data) / 2
 		if n > threshold {
@@ -56,6 +42,9 @@ func main() {
 	log.Printf("Epsilon rate: %+v - %d", epsilon, epsilonRate)
 	log.Printf("Consumption rate: %d", gammaRate*epsilonRate)
 
+	or := findOxyRating(gamma, data)
+
+	log.Printf("Oxy Rating: %s", or)
 }
 
 func binaryArrayToDecimal(arr []int) int {
@@ -66,4 +55,51 @@ func binaryArrayToDecimal(arr []int) int {
 		acc += float64(n) * math.Pow(2, float64(len(arr)-1-p))
 	}
 	return int(acc)
+}
+
+func summarizeDataByColumn(data []string, ) (int, []int) {
+	bufferSize := 0
+	counts := make([]int, 0)
+	for r, reading := range data {
+		buffer := []rune(reading)
+		for i, c := range buffer {
+			if r == 0 {
+				counts = append(counts, 0)
+				bufferSize++
+			}
+
+			if c == '1' {
+				counts[i]++
+			}
+		}
+	}
+	return bufferSize, counts
+}
+
+func matchCharAt(s string, c int, i int) bool {
+	v, _ :=  strconv.Atoi(string(rune(s[i])))
+	return v == c
+}
+
+func remove(slice []string, s int) []string {
+	return append(slice[:s], slice[s+1:]...)
+}
+
+func findOxyRating(gamma []int, data []string) string {
+	for i := 0; i < len(gamma); i++ {
+		log.Printf("Checking gamma index: %d", i)
+		for _, _ = range data {
+			log.Printf("ranging data: %s", data[i])
+			if matchCharAt(data[i], gamma[i], i) {
+				//log.Printf("Matched: %s - %s", string(data[i][i]), fmt.Sprintf("%d", gamma[i]))
+				if len(data) > 1 {
+					log.Printf("Removing: %d - %s", i, data[i])
+					data = remove(data, i)
+				}
+			}/* else {
+				log.Printf("Not matched: %s - %s", string(data[i][i]), fmt.Sprintf("%d", gamma[i]))
+			}*/
+		}
+	}
+	return ""
 }
