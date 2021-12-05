@@ -1,10 +1,11 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"github.com/kjkondratuk/2021-advent-of-code/lib"
 	"log"
 	"math"
-	"strconv"
 )
 
 // Generate:
@@ -12,94 +13,164 @@ import (
 //   - Epsilon Rate - least common bit in position over the whole dataset
 //
 //  Answer: multiply gamma rate by epsilon rate & convert to decimal
+
+var (
+	ErrNoWinner = errors.New("there was a tie")
+)
+
 func main() {
 	data := lib.ReadData("inputs/day-3.txt")
 
-	size, counts := summarizeDataByColumn(data)
-
 	log.Printf("Total records: %d", len(data))
-	log.Printf("Counts: %+v", counts)
 
-	gamma := make([]int, size)
-	epsilon := make([]int, size)
-	for i, n := range counts {
-		threshold := len(data) / 2
-		if n > threshold {
-			gamma[i] = 1
-			epsilon[i] = 0
-		} else if n == threshold {
-			// freak out because it didn't say what to do in the instructions
-			panic("equal value distribution!")
-		} else {
-			gamma[i] = 0
-			epsilon[i] = 1
+	arr := create2DBooleanArray(data)
+
+	lineLen := len(arr[0])
+
+	// PART 1
+	gamma := make([]bool, 0)
+	for i := 0; i < lineLen; i++ {
+		summary, err := summarizeDataByColumn(arr, i)
+		if err != nil {
+			panic(err)
 		}
+		gamma = append(gamma, summary)
 	}
+	epsilon := inverse(gamma)
 
 	gammaRate := binaryArrayToDecimal(gamma)
 	log.Printf("Gamma rate: %+v - %d", gamma, gammaRate)
 	epsilonRate := binaryArrayToDecimal(epsilon)
 	log.Printf("Epsilon rate: %+v - %d", epsilon, epsilonRate)
-	log.Printf("Consumption rate: %d", gammaRate*epsilonRate)
+	log.Printf("Power Consumption rate: %d", gammaRate*epsilonRate)
 
-	or := findOxyRating(gamma, data)
+	// Added to prevent regresssion during refactoring
+	//if gammaRate*epsilonRate != 1540244 {
+	//	panic("incorrect power consumption")
+	//}
 
-	log.Printf("Oxy Rating: %s", or)
+	// PART 2
+	o2rating := FilterableBinaryList(arr).ProgressivePopularityFilterWithDefault(true)
+	co2rating := FilterableBinaryList(arr).ProgressivePopularityFilterWithDefault(false)
+
+	o2RatingDecimal := binaryArrayToDecimal(o2rating)
+	log.Printf("Oxy Rating: %d", o2RatingDecimal)
+
+	co2RatingDecimal := binaryArrayToDecimal(co2rating)
+	log.Printf("Co2 Rating: %d", co2RatingDecimal)
+
+	log.Printf("Life Support Rating: %d", o2RatingDecimal*co2RatingDecimal)
 }
 
-func binaryArrayToDecimal(arr []int) int {
+type FilterableBinaryList [][]bool
+
+type BinaryListPredicate func(data []bool) bool
+
+func (l FilterableBinaryList) Filter(p BinaryListPredicate) [][]bool {
+	filtered := make([][]bool, 0)
+	for _, item := range l {
+		if p(item) {
+			fmt.Printf("preserving: %+v\n", item)
+			filtered = append(filtered, item)
+		}
+	}
+	return filtered
+}
+
+// ProgressivePopularityFilterWithDefault : filters progressively based on the popularity of a binary value
+// starting at the left-most position and moving right until there is a single element left.
+func (l FilterableBinaryList) ProgressivePopularityFilterWithDefault(dflt bool) []bool {
+	var v []bool
+	arrCopy := l
+	i := 0
+	for {
+		pop, err := summarizeDataByColumn(arrCopy, i)
+		if err == ErrNoWinner {
+			fmt.Printf("using default of: %t\n", dflt)
+			if dflt {
+				pop = dflt
+			} else {
+				// invert the chosen default because we are inverting the comparison in the filter below
+				pop = !dflt
+			}
+		}
+
+		log.Printf("pop is: %t", pop)
+		log.Printf("Filtering: %t at index %d", !pop, i)
+		log.Printf("Len (B): %d", len(arrCopy))
+		arrCopy = arrCopy.Filter(func(data []bool) bool {
+			if dflt {
+				//log.Printf("Filter most popular: %t - %t", data[i], pop)
+				return data[i] == pop
+			} else {
+				//log.Printf("Filter least popular: %t - %t", data[i], pop)
+				return data[i] == !pop
+			}
+		})
+		log.Printf("Len (A): %d", len(arrCopy))
+
+		if len(arrCopy) == 1 {
+			v = arrCopy[0]
+			break
+		}
+		i++
+	}
+	return v
+}
+
+func binaryArrayToDecimal(arr []bool) int {
 	var acc float64 = 0
 	for p, n := range arr {
-		//log.Printf("multiplying: %f %f", float64(n), math.Pow(2, float64(len(arr)-p)))
-		//log.Printf("2^x : %d", len(arr)-1-p)
-		acc += float64(n) * math.Pow(2, float64(len(arr)-1-p))
+		var v float64
+		if n {
+			v = 1
+		}
+		acc += v * math.Pow(2, float64(len(arr)-1-p))
 	}
 	return int(acc)
 }
 
-func summarizeDataByColumn(data []string, ) (int, []int) {
-	bufferSize := 0
-	counts := make([]int, 0)
-	for r, reading := range data {
-		buffer := []rune(reading)
-		for i, c := range buffer {
-			if r == 0 {
-				counts = append(counts, 0)
-				bufferSize++
-			}
+func inverse(i []bool) []bool {
+	r := make([]bool, 0)
+	for _, item := range i {
+		r = append(r, !item)
+	}
+	return r
+}
 
+func summarizeDataByColumn(data [][]bool, col int) (bool, error) {
+	var total float64 = 0
+	for _, row := range data {
+		if row[col] {
+			total++
+		}
+	}
+
+	majority := float64(len(data)) / 2.0
+	fmt.Printf("total: %f - majority: %f - len: %d\n", total, majority, len(data))
+	if total > majority {
+		fmt.Println("total greater than majority")
+		return true, nil
+	} else if total == majority {
+		fmt.Println("total equal to majority")
+		return false, ErrNoWinner
+	} else {
+		fmt.Println("total less than majority")
+		return false, nil
+	}
+}
+
+func create2DBooleanArray(data []string) [][]bool {
+	arr := make([][]bool, 0)
+	for a, d := range data {
+		arr = append(arr, make([]bool, 0))
+		for _, c := range d {
+			v := false
 			if c == '1' {
-				counts[i]++
+				v = true
 			}
+			arr[a] = append(arr[a], v)
 		}
 	}
-	return bufferSize, counts
-}
-
-func matchCharAt(s string, c int, i int) bool {
-	v, _ :=  strconv.Atoi(string(rune(s[i])))
-	return v == c
-}
-
-func remove(slice []string, s int) []string {
-	return append(slice[:s], slice[s+1:]...)
-}
-
-func findOxyRating(gamma []int, data []string) string {
-	for i := 0; i < len(gamma); i++ {
-		log.Printf("Checking gamma index: %d", i)
-		for _, _ = range data {
-			log.Printf("ranging data: %s", data[i])
-			if matchCharAt(data[i], gamma[i], i) {
-				//log.Printf("Matched: %s - %s", string(data[i][i]), fmt.Sprintf("%d", gamma[i]))
-				if len(data) > 1 {
-					log.Printf("Removing: %d - %s", i, data[i])
-					data = remove(data, i)
-				}
-			}/* else {
-				log.Printf("Not matched: %s - %s", string(data[i][i]), fmt.Sprintf("%d", gamma[i]))
-			}*/
-		}
-	}
-	return ""
+	return arr
 }
