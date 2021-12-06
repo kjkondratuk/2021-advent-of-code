@@ -30,12 +30,6 @@ func determineWinner(turns []string, cards map[int]Card) (int, int) {
 		for ci, c := range cards {
 			if filled := c.Mark(turns[i]); filled {
 				if firstWinner < 0 {
-					//fmt.Printf("filled card: %d on turn %d\n", ci, i)
-					//fmt.Printf("turns: %+v\n", turnsTaken)
-					//fmt.Println("Card:")
-					//for _, row := range c.GetSpaces() {
-					//	fmt.Printf("%+v\n", row)
-					//}
 					firstWinner = ci
 					goto winnerEnd
 				}
@@ -159,8 +153,6 @@ func (c *card) Score(winnerNum int) int {
 				num, _ := strconv.Atoi(c.spaces[ri][ci])
 				//fmt.Printf("adding: %d\n", num)
 				total += num
-			} else {
-				//fmt.Printf("not marked\n")
 			}
 		}
 	}
