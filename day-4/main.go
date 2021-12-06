@@ -8,29 +8,42 @@ import (
 )
 
 func main() {
-	turns, cards := parseFile("inputs/day-4.txt")
+	turns, cards := parseFile("inputs/day-4-small.txt")
 	fmt.Printf("Cards: %d\n", len(cards))
 	fmt.Printf("Turns: %+v\n", turns)
 
-	turn, winner := determineWinner(turns, cards)
-	fmt.Printf("Turn won: %d\n", turn)
+	s := score(turns, cards, true)
+	fmt.Printf("Score 1: %d\n\n", s)
+
+	s1 := score(turns, cards, false)
+	fmt.Printf("Score 2: %d\n\n", s1)
+}
+
+func score(turns []string, cards map[int]Card, firstWinner bool) int {
+	turn, winner := determineWinner(turns, cards, firstWinner)
+	fmt.Printf("\nTurn won: %d\n", turn)
 	fmt.Printf("Winner index: %d\n", winner)
 
 	fmt.Printf("Index: %d - Card: %+v\n", winner, cards[winner].GetSpaces())
 	winNum, _ := strconv.Atoi(turns[turn - 1])
-	score := cards[winner].Score(winNum)
-	fmt.Printf("Score: %d", score)
+	s := cards[winner].Score(winNum)
+	return s
 }
 
-func determineWinner(turns []string, cards map[int]Card) (int, int) {
-	firstWinner := -1
+func determineWinner(turns []string, cards map[int]Card, first bool) (int, int) {
+	winner := -1
 	var turnsTaken []string
 	for i := 0; i < len(turns); i++ {
 		turnsTaken = append(turnsTaken, turns[i])
 		for ci, c := range cards {
 			if filled := c.Mark(turns[i]); filled {
-				if firstWinner < 0 {
-					firstWinner = ci
+				fmt.Printf("completions: %d\n", cards[ci].GetCompletions())
+				if !first && cards[ci].GetCompletions() == 1 {
+					winner = ci
+					fmt.Printf("updating winner: %d\n", winner)
+				}
+				if first && winner < 0 {
+					winner = ci
 					goto winnerEnd
 				}
 			}
@@ -38,7 +51,7 @@ func determineWinner(turns []string, cards map[int]Card) (int, int) {
 	}
 
 	winnerEnd:
-	return len(turnsTaken), firstWinner
+	return len(turnsTaken), winner
 }
 
 func parseFile(file string) ([]string, map[int]Card) {
@@ -77,6 +90,7 @@ func parseFile(file string) ([]string, map[int]Card) {
 type card struct {
 	spaces [][]string
 	marks  [][]bool
+	completeCount int
 }
 
 type Card interface {
@@ -84,12 +98,15 @@ type Card interface {
 	Mark(s string) bool
 	GetSpaces() [][]string
 	Score(turn int) int
+	Complete()
+	GetCompletions() int
 }
 
 func NewCard() Card {
 	return &card{
 		spaces: make([][]string, 0),
 		marks:  make([][]bool, 0),
+		completeCount: 0,
 	}
 }
 
@@ -122,10 +139,14 @@ func (c *card) Mark(s string) bool {
 	for ri, row := range c.spaces {
 		for ci, col := range row {
 			if col == s {
-				c.marks[ri][ci] = true
+				// TODO : started adding completions to try to stop when we've reached the final first completion
+				if c.completeCount == 0 {
+					c.marks[ri][ci] = true
+				}
 				completed := checkRow(c.marks[ri])
 				if completed {
-					fmt.Printf("completed based on row\n")
+					//fmt.Printf("completed based on row\n")
+					c.Complete()
 					return completed
 				} else {
 					b := true
@@ -135,7 +156,8 @@ func (c *card) Mark(s string) bool {
 						}
 					}
 					if b {
-						fmt.Printf("columns checked\n")
+						//fmt.Printf("columns checked\n")
+						c.Complete()
 					}
 					return b
 				}
@@ -153,12 +175,22 @@ func (c *card) Score(winnerNum int) int {
 				num, _ := strconv.Atoi(c.spaces[ri][ci])
 				//fmt.Printf("adding: %d\n", num)
 				total += num
+			} else {
+				//fmt.Printf("not marked\n")
 			}
 		}
 	}
 	fmt.Printf("Total: %d\n", total)
 	fmt.Printf("Turn: %d\n", winnerNum)
 	return total * winnerNum
+}
+
+func (c *card) Complete() {
+	c.completeCount++
+}
+
+func (c *card) GetCompletions() int {
+	return c.completeCount
 }
 
 func checkRow(s []bool) bool {
