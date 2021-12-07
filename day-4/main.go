@@ -202,7 +202,7 @@ func (c *card) Print() {
 				str = " " + str
 			}
 			if c.marks[ri][ci] {
-				fmt.Printf("\033[31m" + str + "\033[0m" + " ")
+				fmt.Printf(lib.Red(str) + " ")
 			} else {
 				fmt.Printf(str + " ")
 			}
