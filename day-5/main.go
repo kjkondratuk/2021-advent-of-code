@@ -84,32 +84,6 @@ func (l Line) Draw(p *Plot) {
 		(*p)[l.origin] = 1
 	}
 	vec := l.origin.RouteTo(l.dest)
-	//step := Point{
-	//	x: 0, y: 0,
-	//}
-	//switch vec.dir {
-	//case Up:
-	//	step.y--
-	//case UpRight:
-	//	step.y--
-	//	step.x++
-	//case UpLeft:
-	//	step.y--
-	//	step.x--
-	//case Down:
-	//	step.y++
-	//case DownRight:
-	//	step.y++
-	//	step.x++
-	//case DownLeft:
-	//	step.y++
-	//	step.x--
-	//case Left:
-	//	step.x--
-	//case Right:
-	//	step.x++
-	//case None:
-	//}
 
 	// iterate over the line in the direction of travel
 	//fmt.Printf("Drawing vector: [%d] [%d]\n", vec.dist, vec.dir)
@@ -132,16 +106,6 @@ func (l Line) Draw(p *Plot) {
 }
 
 var (
-	//Up = iota
-	//UpLeft
-	//UpRight
-	//Down
-	//DownLeft
-	//DownRight
-	//Right
-	//Left
-	//None
-
 	Up        = Direction{0, -1}
 	UpLeft    = Direction{-1, -1}
 	UpRight   = Direction{1, -1}
