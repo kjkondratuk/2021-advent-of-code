@@ -90,7 +90,7 @@ func (n *Navigator) Go(ins Instruction) Postion {
 }
 
 func main() {
-	data := lib.ReadData("inputs/day-2.txt")
+	data := lib.NewDataReader("inputs/day-2.txt").Read().([]string)
 	var pos Postion
 	var aimPos Postion
 	for _, dir := range data {

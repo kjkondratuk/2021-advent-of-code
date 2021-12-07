@@ -19,7 +19,7 @@ var (
 )
 
 func main() {
-	data := lib.ReadData("inputs/day-3.txt")
+	data := lib.NewDataReader("inputs/day-3.txt").Read().([]string)
 
 	log.Printf("Total records: %d", len(data))
 

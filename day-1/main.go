@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	lines := lib.ReadData("inputs/day-1.txt")
+	lines := lib.NewDataReader("inputs/day-1.txt").Read().([]string)
 	var p lib.IntCollection = parse(lines)
 	log.Printf("Parsed Length: [%d]", len(p))
 	c := p.Comprehend(3, func(set []int) []int {

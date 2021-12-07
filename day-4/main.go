@@ -2,13 +2,52 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"github.com/kjkondratuk/2021-advent-of-code/lib"
 	"strconv"
 	"strings"
 )
 
+var (
+	loader = func(lines []string) interface{} {
+		turnLiteral := lines[0]
+		turns := strings.Split(turnLiteral, ",")
+
+		cards := make([]Card, 0)
+		nextCard := 1
+		for j := 1; j < len(lines); j++ {
+			// skip lines which separate data
+			if lines[j] == "" {
+				continue
+			}
+
+			cards = append(cards, NewCard(nextCard-1))
+			//fmt.Printf("Creating card\n")
+			for x := 0; x < 5; x++ {
+				ds := strings.ReplaceAll(strings.TrimPrefix(lines[j+x], " "), "  ", " ")
+				numbers := strings.Split(ds, " ")
+				if len(numbers) != 5 {
+					panic("invalid card detected")
+				}
+				cards[nextCard-1].AppendRow(numbers)
+			}
+			j += 5
+			nextCard++
+		}
+
+		result := make([]interface{}, 0)
+		result = append(result, turns, cards)
+
+		return result
+	}
+)
+
 func main() {
-	turns, cards := parseFile("inputs/day-4.txt")
+	//turns, cards := parseFile("inputs/day-4.txt")
+	data := lib.NewDataReaderWithLoader("inputs/day-4.txt", loader).Read()
+	params := data.([]interface{})
+	turns := params[0].([]string)
+	cards := params[1].([]Card)
+
 	fmt.Printf("Cards: %d\n", len(cards))
 	//fmt.Printf("Turns: %+v\n", turns)
 
@@ -27,7 +66,11 @@ func main() {
 	}
 
 	// parsing again because cards are mutable and we've dirtied the previous set
-	t, c := parseFile("inputs/day-4.txt")
+	d := lib.NewDataReaderWithLoader("inputs/day-4.txt", loader).Read()
+	p := d.([]interface{})
+	t := p[0].([]string)
+	c := p[1].([]Card)
+
 	loserIter := NewTurnIterator(t)
 
 	var winners []Card
@@ -56,39 +99,6 @@ func contains(cards []Card, card Card) bool {
 		}
 	}
 	return false
-}
-
-func parseFile(file string) ([]string, []Card) {
-	bytes, _ := ioutil.ReadFile(file)
-
-	lines := strings.Split(string(bytes), "\n")
-
-	turnLiteral := lines[0]
-	turns := strings.Split(turnLiteral, ",")
-
-	cards := make([]Card, 0)
-	nextCard := 1
-	for i := 1; i < len(lines); i++ {
-		// skip lines which separate data
-		if lines[i] == "" {
-			continue
-		}
-
-		cards = append(cards, NewCard(nextCard-1))
-		//fmt.Printf("Creating card\n")
-		for x := 0; x < 5; x++ {
-			ds := strings.ReplaceAll(strings.TrimPrefix(lines[i+x], " "), "  ", " ")
-			numbers := strings.Split(ds, " ")
-			if len(numbers) != 5 {
-				panic("invalid card detected")
-			}
-			cards[nextCard-1].AppendRow(numbers)
-		}
-		i += 5
-		nextCard++
-	}
-
-	return turns, cards
 }
 
 type card struct {
