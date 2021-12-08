@@ -7,7 +7,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 )
 
 var (
@@ -38,38 +37,35 @@ func main() {
 	fish := make([]lanternfish.LanternFish, len(num))
 	tick := make(chan int)
 	repro := make(chan bool)
-	stopAll := make(chan bool)
+	//stopAll := make(chan bool)
 
-	fwg := sync.WaitGroup{}
 	for i, n := range num {
-		fishTick := make(chan int)
-		fishQuit := make(chan bool)
-		f := lanternfish.NewLanternFish(i, n, fishTick, repro, fishQuit)
+		f := lanternfish.NewLanternFish(i, n, repro)
 		fish[i] = f
 		//fwg.Add(1)
 		fmt.Printf("Starting fish: %d\n", i)
-		go f.Start(&fwg)
+		go f.Start()
 	}
 
+	subsequentSpawns := 0
 	go func() {
 		for {
 			select {
 			case day := <-tick:
 				for _, f := range fish {
-					fwg.Add(1)
 					f.Send(day)
 				}
-			//case <-repro:
-			//	fishTick := make(chan int)
-			//	fishQuit := make(chan bool)
-			//	f := lanternfish.NewLanternFish(0, 8, fishTick, repro, fishQuit)
-			//	fish = append(fish, f)
-			//	//fwg.Add(1)
-			//	go f.Start(&fwg)
-			case <-stopAll:
-				for _, f := range fish {
-					f.Stop()
-				}
+			case _ = <-repro:
+				fmt.Printf("Spawning new fish: %d\n", subsequentSpawns)
+				subsequentSpawns++
+				f := lanternfish.NewLanternFish(0, 8, repro)
+				fish = append(fish, f)
+				//fwg.Add(1)
+				go f.Start()
+			//case <-stopAll:
+			//	for _, f := range fish {
+			//		f.Stop()
+			//	}
 			}
 		}
 	}()
@@ -80,11 +76,8 @@ func main() {
 		tick <- i
 	}
 
-	// wait for all the work to be complete
-	fwg.Wait()
-
 	// send stop signal
-	stopAll <- true
+	//stopAll <- true
 
 	fmt.Printf("Done simulating...")
 
