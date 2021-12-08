@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/kjkondratuk/2021-advent-of-code/day-6/lanternfish"
 	"github.com/kjkondratuk/2021-advent-of-code/lib"
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 var (
@@ -31,56 +31,38 @@ func main() {
 	numDaysStr := os.Getenv("NUM_DAYS")
 	numDays, _ := strconv.Atoi(numDaysStr)
 
-	fmt.Printf("Initial state: ")
+	fmt.Printf("Initial state: \n")
 	fmt.Printf(SPrintSeries(num))
 
-	fish := make([]lanternfish.LanternFish, len(num))
-	tick := make(chan int)
-	repro := make(chan bool)
-	//stopAll := make(chan bool)
-
-	for i, n := range num {
-		f := lanternfish.NewLanternFish(i, n, repro)
-		fish[i] = f
-		//fwg.Add(1)
-		fmt.Printf("Starting fish: %d\n", i)
-		go f.Start()
+	wg := sync.WaitGroup{}
+	for i := 0; i < len(num); i++ {
+		wg.Add(1)
+		go advanceNumberXDays(&wg, &num[i], numDays)
 	}
 
-	subsequentSpawns := 0
-	go func() {
-		for {
-			select {
-			case day := <-tick:
-				for _, f := range fish {
-					f.Send(day)
-				}
-			case _ = <-repro:
-				fmt.Printf("Spawning new fish: %d\n", subsequentSpawns)
-				subsequentSpawns++
-				f := lanternfish.NewLanternFish(0, 8, repro)
-				fish = append(fish, f)
-				//fwg.Add(1)
-				go f.Start()
-			//case <-stopAll:
-			//	for _, f := range fish {
-			//		f.Stop()
-			//	}
+	wg.Wait()
+
+	fmt.Printf(SPrintSeries(num))
+
+	fmt.Printf("Num fish: %d\n", len(num))
+}
+
+func advanceNumberXDays(wg *sync.WaitGroup, num *int, days int) {
+	for i := 0; i < days; i++ {
+		*num--
+		if *num < 0 {
+			newChild := 8
+			newLifespan := days - (i + 1)
+			if newLifespan > 0 {
+				fmt.Printf("Create a new fish: p: %d c: %d l: %d\n", *num, newChild, newLifespan)
+				wg.Add(1)
+				go advanceNumberXDays(wg, &newChild, days-(i+1))
 			}
+			*num = 6
 		}
-	}()
-
-	fmt.Printf("Initial fish started...\n")
-
-	for i := 0; i < numDays; i++ {
-		tick <- i
 	}
-
-	// send stop signal
-	//stopAll <- true
-
-	fmt.Printf("Done simulating...")
-
+	fmt.Printf("Fish completed at: %d\n", *num)
+	wg.Done()
 }
 
 func SPrintSeries(series []int) string {
