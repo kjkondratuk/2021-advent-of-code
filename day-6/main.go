@@ -6,7 +6,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 )
 
 var (
@@ -34,20 +33,17 @@ func main() {
 	fmt.Printf("Initial state: \n")
 	fmt.Printf(SPrintSeries(num))
 
-	wg := sync.WaitGroup{}
+	//wg := sync.WaitGroup{}
 	for i := 0; i < len(num); i++ {
-		wg.Add(1)
-		go advanceNumberXDays(&wg, &num[i], numDays)
+		advanceNumberXDays(&num[i], numDays)
 	}
-
-	wg.Wait()
 
 	fmt.Printf(SPrintSeries(num))
 
 	fmt.Printf("Num fish: %d\n", len(num))
 }
 
-func advanceNumberXDays(wg *sync.WaitGroup, num *int, days int) {
+func advanceNumberXDays(num *int, days int) {
 	for i := 0; i < days; i++ {
 		*num--
 		if *num < 0 {
@@ -55,14 +51,12 @@ func advanceNumberXDays(wg *sync.WaitGroup, num *int, days int) {
 			newLifespan := days - (i + 1)
 			if newLifespan > 0 {
 				fmt.Printf("Create a new fish: p: %d c: %d l: %d\n", *num, newChild, newLifespan)
-				wg.Add(1)
-				go advanceNumberXDays(wg, &newChild, days-(i+1))
+				advanceNumberXDays(&newChild, days-(i+1))
 			}
 			*num = 6
 		}
 	}
 	fmt.Printf("Fish completed at: %d\n", *num)
-	wg.Done()
 }
 
 func SPrintSeries(series []int) string {
